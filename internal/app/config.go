@@ -9,7 +9,7 @@ import (
 type Config struct {
 	Port        string `mapstructure:"PORT"`
 	DatabaseURL string `mapstructure:"DATABASE_URL"`
-	JwtSecret   string `mapstructure:"JWT_SECRET"`
+	JwtSecret   string `mapstructure:"qwerty"`
 }
 
 // LoadConfig загружает конфигурацию из файла или переменных окружения

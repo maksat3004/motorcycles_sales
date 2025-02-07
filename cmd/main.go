@@ -18,14 +18,14 @@ func main() {
 	const jwtSecretKey = "qwerty"
 
 	// Подключение к базе данных
-	db, err := database.ConnectPostgres("postgres://postgres:password@localhost:5432/motorcycle_sales?sslmode=disable")
+	db, err := database.ConnectPostgres("postgres://postgres:qwerty@localhost:5436/postgres?sslmode=disable")
 	if err != nil {
 		log.Fatalf("Ошибка подключения к базе данных: %v", err)
 	}
 	defer db.Close()
 
 	// Создание репозиториев
-	userRepo := repositories.NewPostgresUserRepository(db) // Проверьте названия функций
+	userRepo := repositories.NewPostgresUserRepository(db) // Проверьте, что эта функция корректно создаёт репозиторий
 	motorcycleRepo := repositories.NewPostgresMotorcycleRepository(db)
 	orderRepo := repositories.NewPostgresOrderRepository(db)
 
@@ -33,7 +33,7 @@ func main() {
 	jwtUtil := utils.NewJWTUtil(jwtSecretKey)
 
 	// Инициализация UseCase слоев
-	authUseCase := usecase.NewAuthUseCase(userRepo, jwtUtil)
+	authUseCase := usecase.NewAuthUseCase(userRepo, jwtUtil) // Проверь, что userRepo подходит для usecase
 	motorcycleUseCase := usecase.NewMotorcycleUseCase(motorcycleRepo)
 	orderUseCase := usecase.NewOrderUseCase(orderRepo, motorcycleRepo)
 

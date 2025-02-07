@@ -1,17 +1,16 @@
 package repositories
 
 import (
+	"database/sql"
 	"errors"
 	_ "errors"
 	"motorcycle-sales/internal/domain/models"
-
-	"github.com/jmoiron/sqlx"
 )
 
 var ErrNotFound = errors.New("not found")
 
 type UserRepository struct {
-	db *sqlx.DB
+	db *sql.DB
 }
 type UserRepositor interface {
 	GetByUsername(username string) (models.User, error)
@@ -23,7 +22,7 @@ type UserRepositor interface {
 	GetUserByUsername(username string) (*models.User, error)
 }
 
-func NewPostgresUserRepository(db *sqlx.DB) *UserRepository {
+func NewPostgresUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
@@ -31,7 +30,7 @@ func NewPostgresUserRepository(db *sqlx.DB) *UserRepository {
 func (r *UserRepository) FindByUsername(username string) (*models.User, error) {
 	var user models.User
 	query := `SELECT id, username, password_hash, role FROM users WHERE username = $1`
-	err := r.db.Get(&user, query, username)
+	err := r.db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Role)
 	if err != nil {
 		return nil, err
 	}

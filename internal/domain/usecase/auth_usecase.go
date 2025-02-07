@@ -8,16 +8,20 @@ import (
 )
 
 type AuthUseCase struct {
-	userRepo repositories.UserRepository
+	userRepo *repositories.UserRepository
 	jwtUtil  utils.JWTUtil
 }
 
 // NewAuthUseCase создает новый экземпляр AuthUseCase
-func NewAuthUseCase(userRepo repositories.UserRepository, jwtUtil utils.JWTUtil) *AuthUseCase {
+func NewAuthUseCase(userRepo *repositories.UserRepository, util utils.JWTUtil) *AuthUseCase {
 	return &AuthUseCase{
 		userRepo: userRepo,
-		jwtUtil:  jwtUtil,
+		jwtUtil:  util,
 	}
+}
+
+func (a *AuthUseCase) GenerateToken(username string, duration time.Duration) (string, error) {
+	return a.jwtUtil.GenerateToken(username, duration)
 }
 
 // RefreshToken обновляет токен доступа

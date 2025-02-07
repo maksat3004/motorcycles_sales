@@ -6,29 +6,30 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"motorcycle-sales/internal/domain/models"
 	"motorcycle-sales/internal/domain/repositories"
+	"motorcycle-sales/internal/domain/usecase"
 	"motorcycle-sales/internal/utils"
 	"net/http"
 	"time"
 )
 
 type AuthHandler struct {
-	UserRepo  repositories.UserRepository
-	UserRepos repositories.UserRepositor
+	UserRepo    repositories.UserRepository
+	AuthUseCase *usecase.AuthUseCase
 }
 
-func NewAuthHandler(userRepo repositories.UserRepository) *AuthHandler {
-	return &AuthHandler{UserRepo: userRepo}
+func NewAuthHandler(authUseCase *usecase.AuthUseCase) *AuthHandler {
+	return &AuthHandler{AuthUseCase: authUseCase}
 }
 
 func (h *AuthHandler) RefreshTokenHandler(w http.ResponseWriter, r *http.Request) {
-	// Пример логики обновления токена
+	// Токенді жаңарту логикасы
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		http.Error(w, "Missing token", http.StatusUnauthorized)
 		return
 	}
 
-	newToken, err := h.NewAuthUseCase.RefreshToken(token)
+	newToken, err := h.AuthUseCase.RefreshToken(token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -37,7 +38,7 @@ func (h *AuthHandler) RefreshTokenHandler(w http.ResponseWriter, r *http.Request
 	utils.JSONResponse(w, map[string]string{"token": newToken}, http.StatusOK)
 }
 
-// LoginHandler - обработчик для входа пользователя
+// LoginHandler - felhasználó belépésének kezelője
 func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -54,7 +55,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверка существования пользователя
+	// Kullanıcının var olup olmadığını kontrol etme
 	user, err := h.UserRepo.FindByUsername(input.Username)
 	if err != nil {
 		if errors.Is(err, repositories.ErrNotFound) {
@@ -65,28 +66,27 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверка пароля
+	// Şifreyi doğrulama
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.Password)); err != nil {
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
-	// Генерация JWT токенов
-	jwtUtil := utils.NewJWTUtil("your_secret_key")
-
+	jwtUtil := utils.NewJWTUtil("qwerty")
+	// JWT tokenlerini oluşturma
 	accessToken, err := jwtUtil.GenerateToken(user.Username, 15*time.Minute)
 	if err != nil {
 		http.Error(w, "Failed to generate access token", http.StatusInternalServerError)
 		return
 	}
 
-	refreshToken, err := jwtUtil.GenerateToken(user.Username, 7*24*time.Hour) // Убрали GenerateRefreshToken
+	refreshToken, err := jwtUtil.GenerateToken(user.Username, 7*24*time.Hour)
 	if err != nil {
 		http.Error(w, "Failed to generate refresh token", http.StatusInternalServerError)
 		return
 	}
 
-	// Установка токенов в cookie
+	// Çereze tokenleri ekleme
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
@@ -101,11 +101,11 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	// Ответ пользователю
+	// Kullanıcıya yanıt gönderme
 	utils.JSONResponse(w, map[string]string{"message": "Login successful"}, http.StatusOK)
 }
 
-// RegisterHandler - обработчик для регистрации пользователя
+// RegisterHandler - felhasználó regisztrációjának kezelője
 func (h *AuthHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -128,7 +128,7 @@ func (h *AuthHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверка существования пользователя
+	// Kullanıcının zaten mevcut olup olmadığını kontrol etme
 	_, err := h.UserRepo.FindByUsername(input.Username)
 	if err == nil {
 		http.Error(w, "User already exists", http.StatusConflict)
@@ -138,14 +138,14 @@ func (h *AuthHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Хэширование пароля
+	// Şifreyi hashleme
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
 		return
 	}
 
-	// Создание пользователя
+	// Yeni kullanıcı oluşturma
 	user := models.User{
 		Username:     input.Username,
 		PasswordHash: string(hashedPassword),
